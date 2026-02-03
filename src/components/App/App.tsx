@@ -15,7 +15,6 @@ import {
   createNote,
   FetchNotesResponse,
 } from "../../services/noteService";
-
 import NoteList from "../NoteList/NoteList";
 import Pagination from "../Pagination/Pagination";
 import SearchBox from "../SearchBox/SearchBox";
@@ -58,10 +57,6 @@ export default function App() {
     },
   });
 
-  const handleDelete = (id: string) => {
-    deleteMutation.mutate(id);
-  };
-
   const createMutation = useMutation({
     mutationFn: createNote,
     onSuccess: () => {
@@ -70,13 +65,13 @@ export default function App() {
     },
   });
 
+  const handleDelete = (id: string) => deleteMutation.mutate(id);
+
   const handleCreate = (values: {
     title: string;
     content: string;
     tag: string;
-  }) => {
-    createMutation.mutate(values);
-  };
+  }) => createMutation.mutate(values);
 
   return (
     <div className={css.app}>
@@ -84,7 +79,11 @@ export default function App() {
         <SearchBox onChange={debouncedSearch} />
 
         {data && data.totalPages > 1 && (
-          <Pagination pageCount={data.totalPages} onPageChange={setPage} />
+          <Pagination
+            pageCount={data.totalPages}
+            currentPage={page}
+            onPageChange={setPage}
+          />
         )}
 
         <button
@@ -96,16 +95,14 @@ export default function App() {
         </button>
       </header>
 
-      {isLoading || isFetching ? <p>Loading...</p> : null}
+      {(isLoading || isFetching) && <p>Loading...</p>}
       {isError && <p>Something went wrong</p>}
 
-      {data && data.notes.length === 0 && <p>No notes found</p>}
-
       {data && data.notes.length > 0 && (
-        <>
-          <NoteList notes={data.notes} onDelete={handleDelete} />
-        </>
+        <NoteList notes={data.notes} onDelete={handleDelete} />
       )}
+
+      {data && data.notes.length === 0 && !isLoading && <p>No notes found</p>}
 
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
