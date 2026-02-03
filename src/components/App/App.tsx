@@ -1,20 +1,10 @@
 import { useState } from "react";
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-  UseQueryOptions,
-} from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDebouncedCallback } from "use-debounce";
 
 import css from "./App.module.css";
 
-import {
-  fetchNotes,
-  deleteNote,
-  createNote,
-  FetchNotesResponse,
-} from "../../services/noteService";
+import { fetchNotes, FetchNotesResponse } from "../../services/noteService";
 import NoteList from "../NoteList/NoteList";
 import Pagination from "../Pagination/Pagination";
 import SearchBox from "../SearchBox/SearchBox";
@@ -35,43 +25,20 @@ export default function App() {
     setSearch(value);
   }, 500);
 
-  const queryOptions: UseQueryOptions<FetchNotesResponse> = {
-    queryKey: ["notes", page, search],
-    queryFn: () => fetchNotes({ page, perPage: PER_PAGE, search }),
-    staleTime: 0,
-    initialData: () => {
-      return queryClient.getQueryData<FetchNotesResponse>([
-        "notes",
-        page - 1,
-        search,
-      ]);
+  const queryKey = ["notes", page, search];
+
+  const { data, isLoading, isError, isFetching } = useQuery<FetchNotesResponse>(
+    {
+      queryKey,
+      queryFn: () => fetchNotes({ page, perPage: PER_PAGE, search }),
+      placeholderData: () =>
+        queryClient.getQueryData<FetchNotesResponse>([
+          "notes",
+          page - 1,
+          search,
+        ]),
     },
-  };
-
-  const { data, isLoading, isError, isFetching } = useQuery(queryOptions);
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteNote,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
-    },
-  });
-
-  const createMutation = useMutation({
-    mutationFn: createNote,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["notes"] });
-      setIsModalOpen(false);
-    },
-  });
-
-  const handleDelete = (id: string) => deleteMutation.mutate(id);
-
-  const handleCreate = (values: {
-    title: string;
-    content: string;
-    tag: string;
-  }) => createMutation.mutate(values);
+  );
 
   return (
     <div className={css.app}>
@@ -98,18 +65,15 @@ export default function App() {
       {(isLoading || isFetching) && <p>Loading...</p>}
       {isError && <p>Something went wrong</p>}
 
-      {data && data.notes.length > 0 && (
-        <NoteList notes={data.notes} onDelete={handleDelete} />
+      {data?.notes?.length ? (
+        <NoteList notes={data.notes} />
+      ) : (
+        !isLoading && <p>No notes found</p>
       )}
-
-      {data && data.notes.length === 0 && !isLoading && <p>No notes found</p>}
 
       {isModalOpen && (
         <Modal onClose={() => setIsModalOpen(false)}>
-          <NoteForm
-            onSubmit={handleCreate}
-            onCancel={() => setIsModalOpen(false)}
-          />
+          <NoteForm onCancel={() => setIsModalOpen(false)} />
         </Modal>
       )}
     </div>

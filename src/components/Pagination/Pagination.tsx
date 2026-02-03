@@ -12,18 +12,20 @@ const Pagination: FC<PaginationProps> = ({
   pageCount,
   currentPage,
   onPageChange,
-}) => (
-  <ReactPaginate
-    pageCount={pageCount}
-    forcePage={currentPage - 1}
-    onPageChange={(selected) => onPageChange(selected.selected + 1)}
-    containerClassName={css.pagination}
-    pageClassName={css.pageItem}
-    pageLinkClassName={css.pageLink}
-    activeClassName={css.active}
-    previousClassName={css.prev}
-    nextClassName={css.next}
-  />
-);
+}) => {
+  return (
+    <ReactPaginate
+      pageCount={pageCount}
+      forcePage={currentPage - 1} // контролює активну сторінку
+      onPageChange={(selected) => onPageChange(selected.selected + 1)}
+      containerClassName={css.pagination}
+      pageClassName={css.page}
+      activeClassName={css.active}
+      previousLabel="<"
+      nextLabel=">"
+      breakLabel="..."
+    />
+  );
+};
 
 export default Pagination;
