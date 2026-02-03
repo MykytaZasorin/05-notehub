@@ -1,22 +1,22 @@
+// src/components/NoteForm/NoteForm.tsx
 import { FC } from "react";
-import { useFormik } from "formik";
+import { useFormik, FormikHelpers, ErrorMessage } from "formik";
 import * as Yup from "yup";
-import {
-  useMutation,
-  useQueryClient,
-  UseMutationResult,
-} from "@tanstack/react-query";
-import { createNote, CreateNoteParams } from "../../services/noteService";
-import { Note } from "../../types/note";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+
 import css from "./NoteForm.module.css";
+import { createNote, CreateNoteParams } from "../../services/noteService";
 
 interface NoteFormProps {
   onCancel: () => void;
 }
 
 const validationSchema = Yup.object({
-  title: Yup.string().min(3).max(50).required("Title is required"),
-  content: Yup.string().max(500, "Content too long"),
+  title: Yup.string()
+    .min(3, "Title must be at least 3 characters")
+    .max(50, "Title must be at most 50 characters")
+    .required("Title is required"),
+  content: Yup.string().max(500, "Content must be at most 500 characters"),
   tag: Yup.string()
     .oneOf(["Todo", "Work", "Personal", "Meeting", "Shopping"])
     .required("Tag is required"),
@@ -25,19 +25,28 @@ const validationSchema = Yup.object({
 const NoteForm: FC<NoteFormProps> = ({ onCancel }) => {
   const queryClient = useQueryClient();
 
-  const mutation: UseMutationResult<Note, Error, CreateNoteParams, unknown> =
-    useMutation({
-      mutationFn: createNote,
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["notes"] });
-        onCancel();
-      },
-    });
+  const mutation = useMutation({
+    mutationFn: (values: CreateNoteParams) => createNote(values),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      onCancel();
+    },
+  });
 
   const formik = useFormik<CreateNoteParams>({
-    initialValues: { title: "", content: "", tag: "Todo" },
+    initialValues: {
+      title: "",
+      content: "",
+      tag: "Todo",
+    },
     validationSchema,
-    onSubmit: (values) => mutation.mutate(values),
+    onSubmit: (
+      values: CreateNoteParams,
+      helpers: FormikHelpers<CreateNoteParams>,
+    ) => {
+      mutation.mutate(values);
+      helpers.resetForm();
+    },
   });
 
   return (
@@ -49,12 +58,11 @@ const NoteForm: FC<NoteFormProps> = ({ onCancel }) => {
           name="title"
           type="text"
           className={css.input}
-          onChange={formik.handleChange}
           value={formik.values.title}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
         />
-        {formik.touched.title && formik.errors.title && (
-          <span className={css.error}>{formik.errors.title}</span>
-        )}
+        <ErrorMessage name="title" component="span" className={css.error} />
       </div>
 
       <div className={css.formGroup}>
@@ -64,12 +72,11 @@ const NoteForm: FC<NoteFormProps> = ({ onCancel }) => {
           name="content"
           rows={8}
           className={css.textarea}
-          onChange={formik.handleChange}
           value={formik.values.content}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
         />
-        {formik.touched.content && formik.errors.content && (
-          <span className={css.error}>{formik.errors.content}</span>
-        )}
+        <ErrorMessage name="content" component="span" className={css.error} />
       </div>
 
       <div className={css.formGroup}>
@@ -78,8 +85,9 @@ const NoteForm: FC<NoteFormProps> = ({ onCancel }) => {
           id="tag"
           name="tag"
           className={css.select}
-          onChange={formik.handleChange}
           value={formik.values.tag}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
         >
           <option value="Todo">Todo</option>
           <option value="Work">Work</option>
@@ -87,9 +95,7 @@ const NoteForm: FC<NoteFormProps> = ({ onCancel }) => {
           <option value="Meeting">Meeting</option>
           <option value="Shopping">Shopping</option>
         </select>
-        {formik.touched.tag && formik.errors.tag && (
-          <span className={css.error}>{formik.errors.tag}</span>
-        )}
+        <ErrorMessage name="tag" component="span" className={css.error} />
       </div>
 
       <div className={css.actions}>
